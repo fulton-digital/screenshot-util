@@ -1,0 +1,43 @@
+#!/usr/bin/env node
+
+// Requires Node 8+
+// NVM:
+// nvm use stable
+
+const puppeteer = require('puppeteer');
+const argv = require('yargs').argv;
+const validUrl = require('valid-url');
+
+(async () => {
+  let url = argv['url'];
+  if (url && validUrl.isUri(url)) {
+    const screenshot = await generateScreenshot(url);
+    process.stdout.write(screenshot);
+  } else {
+    console.error('bad url');
+    process.exitCode = 1;
+  }
+})();
+
+async function generateScreenshot(url) {
+  const browser = await puppeteer.launch({
+    defaultViewport: {
+      width: 1280,
+      height: 800,
+      deviceScaleFactor: 2
+    }
+  });
+  const page = await browser.newPage();
+  await page.goto(url, {waitUntil: 'networkidle2'});
+  let element = argv['element'];
+  let screenshot;
+
+  if(element){
+    const screenshotElement = await page.$(element);
+    screenshot = await screenshotElement.screenshot();
+  } else {
+    screenshot = await page.screenshot({fullPage: true});
+  }
+  await browser.close();
+  return screenshot;
+}
